@@ -25,6 +25,7 @@ from pyspark.sql import functions as F
 
 from ekb.chunking import hashing_embed, hybrid_chunk
 from ekb.config import Settings
+from ekb.parent_child import assign_parents
 from ekb.parsing import parse_bytes
 from ekb.pipeline import chunk_row_metadata
 
@@ -101,6 +102,10 @@ for d in docs.itertuples():
                            s.semantic_breakpoint_percentile, chunk_row_metadata(meta)):
         rows.append(ch.to_row())
 
+# Parent-child retrieval: group consecutive chunks of a document into parent passages
+# (sets parent_id on every chunk row). Children are indexed, parents are sent to the LLM.
+parents = assign_parents(rows, s.parent_max_tokens)
+
 chunks_df = (spark.createDataFrame(pd.DataFrame(rows))
              .withColumn("chunked_at", F.current_timestamp()))
 
@@ -110,6 +115,12 @@ chunks_df = (spark.createDataFrame(pd.DataFrame(rows))
 
 spark.sql(f"ALTER TABLE {s.chunks_table} SET TBLPROPERTIES (delta.enableChangeDataFeed = true)")
 print(f"{len(rows)} chunks from {len(docs)} documents")
+
+(spark.createDataFrame(pd.DataFrame(parents))
+ .withColumn("chunked_at", F.current_timestamp())
+ .write.mode("overwrite").option("overwriteSchema", True)
+ .saveAsTable(s.table("silver_parents")))
+print(f"{len(parents)} parent passages → {s.table('silver_parents')}")
 
 # COMMAND ----------
 

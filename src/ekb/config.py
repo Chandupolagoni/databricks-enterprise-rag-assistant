@@ -32,6 +32,10 @@ class Settings:
     rerank_top_n: int = 5         # chunks sent to the LLM
     rrf_k: int = 60               # reciprocal rank fusion constant
 
+    # Parent-child retrieval: search small chunks, generate from their parent passages
+    parent_max_tokens: int = 400
+    context_max_tokens: int = 1500
+
     # Guardrails
     min_groundedness: float = 0.55
     refusal_text: str = "I don't know based on the documents you have access to."

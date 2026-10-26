@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-10-26 — Parent-child retrieval
+- `ekb.parent_child`: chunks are grouped into per-document parent passages (`silver_parents`, ≤400 tokens, overlap removed); `ParentExpander` swaps each reranked chunk for its parent under a 1,500-token context budget, de-duplicates siblings and never widens RBAC. Wired into `KnowledgeAssistant` (optional `context_expander`, `context.expand` trace span) and notebooks 02/04.
+- Why: small chunks retrieve precisely but often cut off the exception or definition in the neighbouring section; the LLM now sees the surrounding policy text while citations and retrieval metrics still use the child chunks. Golden set unchanged (answer correctness 0.90, citation accuracy 0.95, refusal accuracy 0.96); 8 new tests (52 total).
+
 ## 2026-10-26 — v0.1.0: initial release
 - Synthetic corpus: 24 documents for the fictional "Meridian Trust & Co." across 7 business units, 4 access levels and 5 file formats (PDF, DOCX, HTML, Markdown, text), with document metadata and user entitlements.
 - `ekb` package: multi-format parsing, hybrid chunking (structure-aware + semantic breakpoints + sliding window), BM25 + vector retrieval with Reciprocal Rank Fusion, lexical and LLM rerankers.

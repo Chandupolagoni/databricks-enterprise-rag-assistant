@@ -4,7 +4,7 @@ Work is shipped in small daily increments, each through its own `feature/<slug>-
 Items are picked roughly top to bottom; tick an item (`[x]`) in the same PR that delivers it.
 
 ## Retrieval quality
-- [ ] Parent-child retrieval: search small chunks, send the larger parent section to the LLM
+- [x] Parent-child retrieval: search small chunks, send the larger parent section to the LLM
 - [ ] Query rewriting for follow-up questions (conversation history → standalone question)
 - [ ] Metadata boosting: prefer the latest `version` of a document; filter by `category` when the question names one
 - [ ] Tune RRF weights (keyword vs vector) from the golden set and record the result in the README

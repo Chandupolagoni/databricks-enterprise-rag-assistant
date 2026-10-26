@@ -3,6 +3,7 @@
     question ─► [1] input guardrail ─► mask PII in question
              ─► hybrid retrieval with [3] RBAC filter (top-k candidates)
              ─► rerank (top-n)
+             ─► optional parent expansion (child chunk → parent passage, token budget)
              ─► [2] mask PII in context
              ─► prompt + LLM
              ─► [4] output verification (groundedness + citation check) ─► mask PII in answer
@@ -68,11 +69,12 @@ class AssistantResponse:
 
 
 class KnowledgeAssistant:
-    def __init__(self, retriever, reranker, llm, settings: Settings | None = None):
+    def __init__(self, retriever, reranker, llm, settings: Settings | None = None, context_expander=None):
         self.retriever = retriever
         self.reranker = reranker
         self.llm = llm
         self.s = settings or Settings()
+        self.context_expander = context_expander     # e.g. parent_child.ParentExpander
 
     def ask(self, question: str, user: UserContext) -> AssistantResponse:
         t0 = time.perf_counter()
@@ -102,6 +104,11 @@ class KnowledgeAssistant:
                 sp.set_outputs({"ids": [c["chunk_id"] for c in top]})
             if not top:
                 return self._done(AssistantResponse(self.s.refusal_text, "no_context", guardrail_events=events), t0, root)
+            retrieved_ids = [c["chunk_id"] for c in top]
+            if self.context_expander is not None:
+                with _span("context.expand", "RETRIEVER") as sp:
+                    top = self.context_expander.expand(top)
+                    sp.set_outputs({"ids": [c.get("parent_id") or c["chunk_id"] for c in top]})
 
             # [2] PII masking of the context before it reaches the LLM
             safe_chunks = []
@@ -118,7 +125,7 @@ class KnowledgeAssistant:
             if strip_citations(raw).strip().rstrip(".") == self.s.refusal_text.rstrip("."):
                 return self._done(AssistantResponse(self.s.refusal_text, "no_context",
                                                     guardrail_events=events,
-                                                    retrieved_chunk_ids=[c["chunk_id"] for c in top]), t0, root)
+                                                    retrieved_chunk_ids=retrieved_ids), t0, root)
 
             # [4] output verification
             with _span("guardrail.output", "GUARDRAIL") as sp:
@@ -128,7 +135,7 @@ class KnowledgeAssistant:
                 events.append(f"output_blocked:groundedness={v.groundedness}:invalid_citations={v.invalid_citations}")
                 return self._done(AssistantResponse(self.s.refusal_text, "refused_ungrounded",
                                                     groundedness=v.groundedness, guardrail_events=events,
-                                                    retrieved_chunk_ids=[c["chunk_id"] for c in top]), t0, root)
+                                                    retrieved_chunk_ids=retrieved_ids), t0, root)
 
             answer = mask_pii(raw).text
             by_doc = {c["doc_id"]: c for c in safe_chunks}
@@ -136,7 +143,7 @@ class KnowledgeAssistant:
                                   by_doc[d].get("relative_path", ""))
                          for d in dict.fromkeys(v.cited_ids) if d in by_doc]
             return self._done(AssistantResponse(answer, "answered", citations, v.groundedness, events,
-                                                [c["chunk_id"] for c in top]), t0, root)
+                                                retrieved_ids), t0, root)
 
     @staticmethod
     def _done(resp: AssistantResponse, t0: float, root) -> AssistantResponse:
