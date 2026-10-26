@@ -206,7 +206,7 @@ See [ROADMAP.md](ROADMAP.md): GraphRAG over policy entities, incremental updates
 
 ## 👨‍💻 Author
 
-**Chandrashekhar Polagoni** — Senior AI Engineer / Data Engineer · Databricks · GenAI · RAG · Agentic AI
+**Chandrashekhar Polagoni** — Senior Data Engineer · Databricks · GenAI · RAG · Agentic AI
 
 [![GitHub](https://img.shields.io/badge/GitHub-Chandupolagoni-181717?logo=github)](https://github.com/Chandupolagoni)
 
