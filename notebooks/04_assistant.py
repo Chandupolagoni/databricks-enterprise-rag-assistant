@@ -7,6 +7,7 @@
 # MAGIC 1. **Input guardrail** – prompt-injection / jailbreak filter
 # MAGIC 2. **RBAC** – the user's entitlements become a Vector Search filter
 # MAGIC 3. **Hybrid search** (BM25 + vector) → **LLM rerank** → top 5 chunks
+# MAGIC    → **parent expansion**: each top chunk is swapped for its parent passage (`silver_parents`) under a token budget
 # MAGIC 4. **PII masking** of the context before it reaches the LLM
 # MAGIC 5. **Generation** with a strict, citation-forcing prompt
 # MAGIC 6. **Output guardrail** – groundedness + citation validation; refuse instead of hallucinating
@@ -28,6 +29,7 @@ import mlflow
 from ekb.assistant import KnowledgeAssistant
 from ekb.config import Settings
 from ekb.llm import DatabricksLLM
+from ekb.parent_child import ParentExpander
 from ekb.rbac import UserContext
 from ekb.rerank import LLMReranker
 from ekb.retrieval import DatabricksHybridRetriever
@@ -44,11 +46,13 @@ mlflow.set_experiment(f"/Users/{user_name}/ekb-assistant")
 # COMMAND ----------
 
 llm = DatabricksLLM(s.llm_endpoint)
+parents = [r.asDict() for r in spark.table(s.table("silver_parents")).drop("chunked_at").collect()]
 assistant = KnowledgeAssistant(
     retriever=DatabricksHybridRetriever(s.vs_endpoint, s.vs_index),
     reranker=LLMReranker(llm),
     llm=llm,
     settings=s,
+    context_expander=ParentExpander(parents, s.context_max_tokens),
 )
 
 users = {r.user_id: UserContext(r.user_id, tuple(b for b in (r.business_units or "").split(";") if b),

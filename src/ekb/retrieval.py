@@ -108,7 +108,7 @@ class DatabricksHybridRetriever:
     """Thin wrapper over a Mosaic AI Vector Search Delta Sync index (managed embeddings)."""
 
     COLUMNS = ["chunk_id", "doc_id", "title", "section", "text", "content", "business_unit",
-               "category", "access_level", "acl_tag", "relative_path", "version"]
+               "category", "access_level", "acl_tag", "relative_path", "version", "parent_id"]
 
     def __init__(self, endpoint_name: str, index_name: str, client=None):
         if client is None:

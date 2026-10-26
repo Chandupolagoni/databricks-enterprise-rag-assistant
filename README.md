@@ -36,6 +36,7 @@ A bank with many business units (compliance, operations, wealth management, asse
 | ✂️ | **Hybrid chunking** | structure-aware → semantic breakpoints (sentence embeddings) → sliding window with overlap |
 | 🔎 | **Hybrid retrieval** | Mosaic AI Vector Search `HYBRID` (BM25 + ANN); local BM25 + vector with Reciprocal Rank Fusion |
 | 🥇 | **Reranking** | LLM listwise reranker (Foundation Model API); lexical reranker for CI |
+| 🧩 | **Parent-child retrieval** | search small chunks for precision, send their parent passage (`silver_parents`) to the LLM under a token budget |
 | 🛡️ | **4 guardrails** | input filtration · PII masking · RBAC metadata filtering · output groundedness verification |
 | 📎 | **Citations** | every answer lists doc id, title, section and file path |
 | 📊 | **Evaluation** | hit rate, context precision/recall, MRR, answer correctness, refusal accuracy, LLM-as-judge |
@@ -141,6 +142,7 @@ databricks-enterprise-rag-assistant/
 │   ├── chunking.py              # hybrid chunking (semantic + sliding window)
 │   ├── retrieval.py             # BM25, RRF fusion, local + Databricks hybrid retrievers
 │   ├── rerank.py                # lexical + LLM rerankers
+│   ├── parent_child.py          # small-to-big: chunk → parent passage expansion
 │   ├── rbac.py                  # entitlements → acl_tag filter
 │   ├── guardrails.py            # input filter, PII masking, output verification
 │   ├── prompting.py             # citation-forcing prompt
@@ -159,7 +161,7 @@ databricks-enterprise-rag-assistant/
 │   ├── metadata/documents.csv   # business unit, category, access level, version
 │   ├── rbac/user_entitlements.csv
 │   └── eval/golden_questions.jsonl
-├── tests/                       # 44 pytest tests incl. an offline end-to-end eval
+├── tests/                       # 52 pytest tests incl. an offline end-to-end eval
 ├── resources/ekb_job.yml        # Databricks Job (bundle resource)
 ├── databricks.yml               # Databricks Asset Bundle
 ├── scripts/generate_corpus.py   # regenerates the sample corpus
@@ -175,7 +177,7 @@ databricks-enterprise-rag-assistant/
 git clone https://github.com/Chandupolagoni/databricks-enterprise-rag-assistant.git
 cd databricks-enterprise-rag-assistant
 pip install -r requirements-dev.txt
-pytest -q            # 44 tests, including an offline end-to-end RAG evaluation
+pytest -q            # 52 tests, including an offline end-to-end RAG evaluation
 ```
 
 **On Databricks** (a free [Databricks Free Edition](https://www.databricks.com/learn/free-edition) workspace works):
