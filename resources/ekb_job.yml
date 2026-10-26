@@ -1,0 +1,31 @@
+resources:
+  jobs:
+    ekb_refresh_and_evaluate:
+      name: ekb-refresh-and-evaluate
+      description: Re-ingest documents, re-chunk, sync the Vector Search index, then run the evaluation quality gate.
+      max_concurrent_runs: 1
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: America/New_York
+        pause_status: PAUSED
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+      tasks:
+        - task_key: ingest
+          notebook_task:
+            notebook_path: ../notebooks/01_setup_and_ingest.py
+        - task_key: parse_and_chunk
+          depends_on: [{ task_key: ingest }]
+          notebook_task:
+            notebook_path: ../notebooks/02_parse_and_chunk.py
+        - task_key: sync_index
+          depends_on: [{ task_key: parse_and_chunk }]
+          notebook_task:
+            notebook_path: ../notebooks/03_vector_index.py
+        - task_key: evaluate
+          depends_on: [{ task_key: sync_index }]
+          notebook_task:
+            notebook_path: ../notebooks/05_evaluation.py

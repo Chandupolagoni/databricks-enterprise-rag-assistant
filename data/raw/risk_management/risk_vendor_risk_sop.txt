@@ -1,0 +1,14 @@
+SOP: Third-Party Vendor Risk Assessment
+=======================================
+
+Tiering
+-------
+Vendors are tiered as critical, high, moderate or low based on data access and service criticality.
+
+Due Diligence
+-------------
+Critical and high vendors require a SOC 2 Type II report, a security questionnaire and a financial review before contract signature.
+
+Reassessment
+------------
+Critical vendors are reassessed annually; low-tier vendors every 3 years.

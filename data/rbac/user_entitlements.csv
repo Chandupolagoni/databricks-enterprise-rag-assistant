@@ -1,0 +1,10 @@
+user_id,display_name,business_units,clearance,roles
+u_fiu_analyst,FIU Analyst,compliance,confidential,fiu_analyst
+u_payments_ops,Payments Operations Specialist,operations,internal,payments_maker
+u_ops_manager,Operations Manager,operations;asset_servicing,confidential,ops_manager
+u_wm_advisor,Wealth Advisor,wealth_management;compliance,internal,advisor
+u_fund_accountant,Fund Accountant,asset_servicing,internal,fund_accountant
+u_risk_manager,Operational Risk Manager,risk_management;compliance,confidential,risk_manager
+u_hr_partner,HR Business Partner,human_resources,restricted,hr_bp
+u_engineer,Platform Engineer,technology,internal,engineer
+u_new_joiner,New Joiner,,public,employee

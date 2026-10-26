@@ -1,0 +1,26 @@
+# Databricks Asset Bundle: deploy the notebooks and the refresh + evaluation job.
+#   databricks bundle validate
+#   databricks bundle deploy -t dev
+#   databricks bundle run ekb_refresh_and_evaluate -t dev
+bundle:
+  name: enterprise-knowledge-assistant
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog
+    default: workspace
+  schema:
+    description: Schema for all EKB tables, the volume and the index
+    default: ekb
+
+targets:
+  dev:
+    mode: development
+    default: true
+  prod:
+    mode: production
+    variables:
+      schema: ekb_prod

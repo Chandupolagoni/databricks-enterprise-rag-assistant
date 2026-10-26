@@ -1,0 +1,14 @@
+KB: Cybersecurity Incident Response
+===================================
+
+Severity
+--------
+Severity 1 incidents involve confirmed client data exposure or a ransomware event. Severity 1 incidents must be reported to the CISO within 1 hour.
+
+Containment
+-----------
+Isolate affected hosts from the network, preserve logs and disable compromised accounts.
+
+Regulatory Notice
+-----------------
+If client data is affected, Legal decides on regulatory notification. Banking regulators must be notified within 36 hours of determining a notification incident.

@@ -1,0 +1,25 @@
+doc_id,title,business_unit,category,access_level,file_format,version,relative_path
+cmp_aml_kyc_policy,Anti-Money Laundering and KYC Policy,compliance,financial_policy,internal,pdf,1,compliance/cmp_aml_kyc_policy.pdf
+cmp_sar_filing_sop,SOP: Suspicious Activity Report Filing,compliance,sop,confidential,docx,1,compliance/cmp_sar_filing_sop.docx
+cmp_complaints_manual,Client Complaints Handling Manual,compliance,complaints_manual,public,html,1,compliance/cmp_complaints_manual.html
+cmp_gifts_entertainment,Gifts and Entertainment Policy,compliance,financial_policy,public,md,1,compliance/cmp_gifts_entertainment.md
+cmp_personal_trading,Personal Trading Policy,compliance,financial_policy,internal,pdf,1,compliance/cmp_personal_trading.pdf
+ops_wire_transfer_sop,SOP: Outgoing Wire Transfer Processing,operations,sop,internal,docx,1,operations/ops_wire_transfer_sop.docx
+ops_trade_settlement_kb,KB: Trade Settlement Failures,operations,knowledge_base,internal,html,1,operations/ops_trade_settlement_kb.html
+ops_corporate_actions_sop,SOP: Voluntary Corporate Actions,operations,sop,internal,md,1,operations/ops_corporate_actions_sop.md
+ops_bcp_runbook,Business Continuity Plan: Payments Runbook,operations,sop,confidential,pdf,1,operations/ops_bcp_runbook.pdf
+wm_suitability_policy,Investment Suitability Policy,wealth_management,financial_policy,internal,pdf,1,wealth_management/wm_suitability_policy.pdf
+wm_client_onboarding_sop,SOP: Wealth Client Onboarding,wealth_management,sop,internal,docx,1,wealth_management/wm_client_onboarding_sop.docx
+wm_fee_schedule_kb,KB: Advisory Fee Schedule,wealth_management,knowledge_base,public,html,1,wealth_management/wm_fee_schedule_kb.html
+as_nav_calc_sop,SOP: Daily NAV Calculation,asset_servicing,sop,internal,pdf,1,asset_servicing/as_nav_calc_sop.pdf
+as_custody_reconciliation_kb,KB: Custody Cash and Position Reconciliation,asset_servicing,knowledge_base,internal,md,1,asset_servicing/as_custody_reconciliation_kb.md
+as_securities_lending_policy,Securities Lending Collateral Policy,asset_servicing,financial_policy,confidential,docx,1,asset_servicing/as_securities_lending_policy.docx
+risk_operational_risk_framework,Operational Risk Management Framework,risk_management,financial_policy,internal,pdf,1,risk_management/risk_operational_risk_framework.pdf
+risk_model_risk_policy,Model Risk Management Policy,risk_management,financial_policy,confidential,html,1,risk_management/risk_model_risk_policy.html
+risk_vendor_risk_sop,SOP: Third-Party Vendor Risk Assessment,risk_management,sop,internal,txt,1,risk_management/risk_vendor_risk_sop.txt
+hr_leave_policy,Paid Time Off and Leave Policy,human_resources,financial_policy,public,md,1,human_resources/hr_leave_policy.md
+hr_code_of_conduct,Code of Conduct,human_resources,financial_policy,public,pdf,1,human_resources/hr_code_of_conduct.pdf
+hr_compensation_bands,Compensation Bands and Bonus Pool Guidelines,human_resources,financial_policy,restricted,docx,1,human_resources/hr_compensation_bands.docx
+tech_access_management_sop,SOP: User Access Management,technology,sop,internal,html,1,technology/tech_access_management_sop.html
+tech_genai_usage_policy,Generative AI Acceptable Use Policy,technology,financial_policy,public,md,1,technology/tech_genai_usage_policy.md
+tech_incident_response_kb,KB: Cybersecurity Incident Response,technology,knowledge_base,confidential,txt,1,technology/tech_incident_response_kb.txt
