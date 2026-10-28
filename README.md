@@ -36,6 +36,7 @@ A bank with many business units (compliance, operations, wealth management, asse
 | ✂️ | **Hybrid chunking** | structure-aware → semantic breakpoints (sentence embeddings) → sliding window with overlap |
 | 🔎 | **Hybrid retrieval** | Mosaic AI Vector Search `HYBRID` (BM25 + ANN); local BM25 + vector with Reciprocal Rank Fusion |
 | 🥇 | **Reranking** | LLM listwise reranker (Foundation Model API); lexical reranker for CI |
+| 💬 | **Follow-up query rewriting** | conversation history → standalone question (LLM rewrite, PII-masked history, heuristic fallback, re-checked by the input guardrail); follow-up MRR@5 0.81 → 0.92 |
 | 🧩 | **Parent-child retrieval** | search small chunks for precision, send their parent passage (`silver_parents`) to the LLM under a token budget |
 | 🛡️ | **4 guardrails** | input filtration · PII masking · RBAC metadata filtering · output groundedness verification |
 | 📎 | **Citations** | every answer lists doc id, title, section and file path |
@@ -143,6 +144,7 @@ databricks-enterprise-rag-assistant/
 │   ├── retrieval.py             # BM25, RRF fusion, local + Databricks hybrid retrievers
 │   ├── rerank.py                # lexical + LLM rerankers
 │   ├── parent_child.py          # small-to-big: chunk → parent passage expansion
+│   ├── query_rewrite.py         # follow-up question → standalone question
 │   ├── rbac.py                  # entitlements → acl_tag filter
 │   ├── guardrails.py            # input filter, PII masking, output verification
 │   ├── prompting.py             # citation-forcing prompt
