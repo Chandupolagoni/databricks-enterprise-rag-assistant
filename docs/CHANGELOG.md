@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-10-28 — Query rewriting for follow-up questions
+- `ekb.query_rewrite`: lexical follow-up detector, `LLMQueryRewriter` (PII-masked history, validated one-line output, heuristic fallback on endpoint errors) and a deterministic `HeuristicRewriter`; `KnowledgeAssistant.ask(..., history=)` rewrites follow-ups in a `query.rewrite` span, re-runs the input guardrail on the rewrite and returns `standalone_question`. Notebook 04 shows a two-turn chat.
+- Why: retrieval is stateless, so elliptical follow-ups ("What about international ones?") searched the wrong passage. On 6 fictional follow-up conversations MRR@5 of the answering chunk rose 0.806 → 0.917; 15 new tests (67 total).
+
 ## 2026-10-26 — Parent-child retrieval
 - `ekb.parent_child`: chunks are grouped into per-document parent passages (`silver_parents`, ≤400 tokens, overlap removed); `ParentExpander` swaps each reranked chunk for its parent under a 1,500-token context budget, de-duplicates siblings and never widens RBAC. Wired into `KnowledgeAssistant` (optional `context_expander`, `context.expand` trace span) and notebooks 02/04.
 - Why: small chunks retrieve precisely but often cut off the exception or definition in the neighbouring section; the LLM now sees the surrounding policy text while citations and retrieval metrics still use the child chunks. Golden set unchanged (answer correctness 0.90, citation accuracy 0.95, refusal accuracy 0.96); 8 new tests (52 total).

@@ -5,7 +5,7 @@ Items are picked roughly top to bottom; tick an item (`[x]`) in the same PR that
 
 ## Retrieval quality
 - [x] Parent-child retrieval: search small chunks, send the larger parent section to the LLM
-- [ ] Query rewriting for follow-up questions (conversation history → standalone question)
+- [x] Query rewriting for follow-up questions (conversation history → standalone question)
 - [ ] Metadata boosting: prefer the latest `version` of a document; filter by `category` when the question names one
 - [ ] Tune RRF weights (keyword vs vector) from the golden set and record the result in the README
 - [ ] Add 15 more golden questions (multi-document and paraphrased questions)
