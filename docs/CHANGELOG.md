@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-10-29 — Metadata boosting (latest version, named category)
+- `ekb.metadata_boost`: `MetadataAwareRetriever` wraps any retriever, oversamples, demotes (or drops) chunks of superseded `version`s using the candidates plus a catalog of latest versions, and filters to a category the question names explicitly (`detect_category`; bare "policy" is not a trigger) only when ≥2 candidates survive. Wired into notebook 04 with versions from `bronze_documents`.
+- Why: hybrid search ranks on text alone, so a re-issued policy and its stale predecessor scored alike and "per the SOP" questions could surface a policy first. Category-named probe questions MRR@5 0.833 → 1.000; golden set unchanged (hit rate 0.95, MRR 0.95); 13 new tests (80 total).
+
 ## 2026-10-28 — Query rewriting for follow-up questions
 - `ekb.query_rewrite`: lexical follow-up detector, `LLMQueryRewriter` (PII-masked history, validated one-line output, heuristic fallback on endpoint errors) and a deterministic `HeuristicRewriter`; `KnowledgeAssistant.ask(..., history=)` rewrites follow-ups in a `query.rewrite` span, re-runs the input guardrail on the rewrite and returns `standalone_question`. Notebook 04 shows a two-turn chat.
 - Why: retrieval is stateless, so elliptical follow-ups ("What about international ones?") searched the wrong passage. On 6 fictional follow-up conversations MRR@5 of the answering chunk rose 0.806 → 0.917; 15 new tests (67 total).
