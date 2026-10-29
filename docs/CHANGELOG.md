@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-10-29 — RRF weight tuning on the golden set
+- `ekb.tuning`: `grid_search_rrf` scores keyword/vector weights × `rrf_k` with the retrieval metrics (ties broken towards 1:1), `leave_one_out_rrf` checks whether the selection generalises; `scripts/tune_rrf.py` prints the table; notebook 05 reruns it with `gte-large` embeddings and logs the result to MLflow. Results recorded in the README.
+- Why: the 1:1 RRF weights were an untested assumption. Best grid point (3:1) lifts MRR@5 0.967 → 0.975 on the full set, but leave-one-out MRR stays 0.967, so the balanced default is kept; 4 new tests (84 total).
+
 ## 2026-10-29 — Metadata boosting (latest version, named category)
 - `ekb.metadata_boost`: `MetadataAwareRetriever` wraps any retriever, oversamples, demotes (or drops) chunks of superseded `version`s using the candidates plus a catalog of latest versions, and filters to a category the question names explicitly (`detect_category`; bare "policy" is not a trigger) only when ≥2 candidates survive. Wired into notebook 04 with versions from `bronze_documents`.
 - Why: hybrid search ranks on text alone, so a re-issued policy and its stale predecessor scored alike and "per the SOP" questions could surface a policy first. Category-named probe questions MRR@5 0.833 → 1.000; golden set unchanged (hit rate 0.95, MRR 0.95); 13 new tests (80 total).

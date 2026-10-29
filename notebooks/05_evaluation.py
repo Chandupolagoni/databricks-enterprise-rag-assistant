@@ -67,6 +67,27 @@ display(pd.DataFrame([r.__dict__ for r in reports]))
 
 # COMMAND ----------
 
+# MAGIC %md ### RRF weight tuning (keyword vs vector)
+# MAGIC Vector Search `HYBRID` fuses server side with fixed weights, so the weights are tuned on a local
+# MAGIC BM25 + `databricks-gte-large-en` replica of `silver_chunks`. The leave-one-out MRR shows whether the
+# MAGIC best grid point generalises or just fits a few golden questions.
+
+# COMMAND ----------
+
+from ekb.llm import DatabricksEmbedder
+from ekb.retrieval import LocalHybridRetriever
+from ekb.tuning import as_markdown, grid_search_rrf, leave_one_out_rrf
+
+chunk_cols = ["chunk_id", "doc_id", "content", "text", "acl_tag", "title", "section", "category", "version"]
+local_chunks = [r.asDict() for r in spark.table(s.chunks_table).select(*chunk_cols).collect()]
+local = LocalHybridRetriever(local_chunks, embed=DatabricksEmbedder(s.embedding_endpoint), rrf_k=s.rrf_k)
+rrf_trials = grid_search_rrf(local, golden, users)
+rrf_loo = leave_one_out_rrf(local, golden, users)
+print(as_markdown(rrf_trials))
+print(rrf_loo)
+
+# COMMAND ----------
+
 # MAGIC %md ### End-to-end assistant + LLM judge
 
 # COMMAND ----------
@@ -94,6 +115,10 @@ with mlflow.start_run(run_name="ekb-eval") as run:
                        "min_groundedness": s.min_groundedness})
     for r in reports:
         mlflow.log_metrics(r.as_metrics())
+    best_rrf = rrf_trials[0]
+    mlflow.log_params({"rrf_best_keyword_weight": best_rrf.keyword_weight,
+                       "rrf_best_vector_weight": best_rrf.vector_weight, "rrf_best_k": best_rrf.rrf_k})
+    mlflow.log_metrics({"rrf_best_mrr_at5": best_rrf.mrr, "rrf_loo_mrr_at5": rrf_loo["loo_mrr"]})
     mlflow.log_metrics({k: v for k, v in summary.items() if isinstance(v, (int, float))})
     mlflow.log_table(pd.DataFrame(details), "eval_details.json")
     run_id = run.info.run_id

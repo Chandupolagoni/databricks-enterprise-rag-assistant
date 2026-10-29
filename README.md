@@ -115,6 +115,16 @@ Golden set: **25 questions** in `data/eval/golden_questions.jsonl` — answerabl
 | Vector | 0.95 | 0.95 | 0.93 |
 | **Hybrid (RRF)** | **1.00** | **1.00** | **0.97** |
 
+**RRF weight tuning** (`python scripts/tune_rrf.py`, hybrid top 5, same offline setup):
+
+| w_keyword : w_vector | rrf_k | Hit rate | Precision | MRR |
+|:-:|:-:|:-:|:-:|:-:|
+| 3 : 1 (best on the full set) | 60 | 1.00 | 0.51 | 0.975 |
+| **1 : 1 (kept)** | 60 | 1.00 | 0.51 | 0.967 |
+| 1 : 2 | 60 | 1.00 | 0.52 | 0.963 |
+
+Leave-one-out MRR of the tuning procedure is **0.967** — identical to the 1 : 1 default — so the 3 : 1 gain comes from a single golden question and does not generalise. The balanced weights stay; `05_evaluation` reruns the grid with the real `gte-large` embeddings and logs the best point and the leave-one-out MRR to MLflow.
+
 **End to end (offline, deterministic stand-in LLM):** refusal accuracy **0.96** · citation accuracy **0.95** · groundedness **1.00**.
 
 On Databricks, `05_evaluation` reruns the same set against the real Vector Search index (vector vs hybrid vs hybrid + LLM rerank), adds an **LLM-as-judge** faithfulness and relevance score, logs everything to MLflow and appends to `gold_eval_results`. The job **fails** if hybrid hit rate or refusal accuracy drop below 0.85.
@@ -152,6 +162,7 @@ databricks-enterprise-rag-assistant/
 │   ├── prompting.py             # citation-forcing prompt
 │   ├── assistant.py             # orchestration + MLflow trace spans
 │   ├── evaluation.py            # retriever + generation metrics, LLM judge
+│   ├── tuning.py                # RRF weight grid search + leave-one-out check
 │   ├── llm.py                   # Foundation Model API clients (+ test double)
 │   └── pipeline.py / config.py
 ├── notebooks/                   # Databricks notebooks (source format)
