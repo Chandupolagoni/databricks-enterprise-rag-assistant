@@ -29,6 +29,7 @@ import mlflow
 from ekb.assistant import KnowledgeAssistant
 from ekb.config import Settings
 from ekb.llm import DatabricksLLM
+from ekb.metadata_boost import MetadataAwareRetriever, latest_versions
 from ekb.parent_child import ParentExpander
 from ekb.query_rewrite import LLMQueryRewriter
 from ekb.rbac import UserContext
@@ -48,8 +49,14 @@ mlflow.set_experiment(f"/Users/{user_name}/ekb-assistant")
 
 llm = DatabricksLLM(s.llm_endpoint)
 parents = [r.asDict() for r in spark.table(s.table("silver_parents")).drop("chunked_at").collect()]
+# Metadata boosting: demote chunks of superseded document versions and honour a category
+# the question names ("per the SOP ...", "KB article ..."). Catalog versions come from Bronze
+# so a stale version is demoted even when the newest one was not retrieved.
+doc_versions = latest_versions(r.asDict() for r in spark.table(s.table("bronze_documents"))
+                               .select("doc_id", "version").collect())
 assistant = KnowledgeAssistant(
-    retriever=DatabricksHybridRetriever(s.vs_endpoint, s.vs_index),
+    retriever=MetadataAwareRetriever(DatabricksHybridRetriever(s.vs_endpoint, s.vs_index),
+                                     catalog_versions=doc_versions),
     reranker=LLMReranker(llm),
     llm=llm,
     settings=s,
