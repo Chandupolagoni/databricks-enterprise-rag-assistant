@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-11-03 — Golden set: 15 paraphrased and multi-document questions
+- Golden set 25 → 40 questions: 8 `paraphrase` rows (little word overlap with the source) and 7 `multi_doc` rows (answer spans two documents), each tagged with `type`. `ekb.evaluation` adds `evaluate_retrieval_by_type` (per-slice reports), `validate_golden` (duplicate ids, unknown docs/users, relevant docs the asking user may not read, single-source `multi_doc` rows) and `load_document_acl`; notebook 05 validates the set and logs per-type metrics to MLflow.
+- Why: the original set was almost all keyword-matched, single-document questions (keyword MRR 1.00), so it could not show where retrieval is weak. Per slice (hybrid top 5, offline): single-doc MRR 0.97, multi-doc context recall 1.00, paraphrase hit rate 1.00 but MRR only 0.62 (keyword alone: hit rate 0.75, MRR 0.45) — paraphrases are the gap to close next; 4 new tests (88 total).
+
 ## 2026-10-29 — RRF weight tuning on the golden set
 - `ekb.tuning`: `grid_search_rrf` scores keyword/vector weights × `rrf_k` with the retrieval metrics (ties broken towards 1:1), `leave_one_out_rrf` checks whether the selection generalises; `scripts/tune_rrf.py` prints the table; notebook 05 reruns it with `gte-large` embeddings and logs the result to MLflow. Results recorded in the README.
 - Why: the 1:1 RRF weights were an untested assumption. Best grid point (3:1) lifts MRR@5 0.967 → 0.975 on the full set, but leave-one-out MRR stays 0.967, so the balanced default is kept; 4 new tests (84 total).

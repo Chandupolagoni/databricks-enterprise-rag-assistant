@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 05 · Evaluation (Gold)
 # MAGIC
-# MAGIC Golden set: 25 questions (`data/eval/golden_questions.jsonl`) — answerable questions with known source documents, questions a user is **not entitled** to, out-of-scope questions and prompt-injection attempts.
+# MAGIC Golden set: 40 questions (`data/eval/golden_questions.jsonl`) — answerable questions with known source documents, questions a user is **not entitled** to, out-of-scope questions and prompt-injection attempts. Each row has a `type`: `single_doc`, `paraphrase` (little word overlap with the source) or `multi_doc` (answer spans two documents); retrieval is reported per type.
 # MAGIC
 # MAGIC | Stage | Metrics |
 # MAGIC |---|---|
@@ -30,7 +30,8 @@ from pyspark.sql import functions as F
 
 from ekb.assistant import KnowledgeAssistant
 from ekb.config import Settings
-from ekb.evaluation import JUDGE_PROMPT, evaluate_assistant, evaluate_retrieval, load_golden, parse_judge
+from ekb.evaluation import (JUDGE_PROMPT, evaluate_assistant, evaluate_retrieval, evaluate_retrieval_by_type,
+                            load_golden, parse_judge, validate_golden)
 from ekb.llm import DatabricksLLM
 from ekb.rbac import UserContext
 from ekb.rerank import LLMReranker
@@ -64,6 +65,21 @@ reports = [
     evaluate_retrieval(retriever, golden, users, k=5, mode="hybrid", reranker=reranker),
 ]
 display(pd.DataFrame([r.__dict__ for r in reports]))
+
+# COMMAND ----------
+
+# MAGIC %md ### Retriever by question type
+# MAGIC The aggregate hides weak slices: paraphrased questions share few words with the source, and
+# MAGIC multi-document questions only count as fully retrieved when **both** sources are in the top 5
+# MAGIC (`context_recall`). The set is validated first (known docs, user entitled to every relevant doc).
+
+# COMMAND ----------
+
+doc_acl = {r.doc_id: r.acl_tag for r in spark.table(s.chunks_table).select("doc_id", "acl_tag").distinct().collect()}
+problems = validate_golden(golden, users, doc_acl)
+assert not problems, problems
+by_type = evaluate_retrieval_by_type(retriever, golden, users, k=5, mode="hybrid", reranker=reranker)
+display(pd.DataFrame([dict(type=t, **r.__dict__) for t, r in by_type.items()]))
 
 # COMMAND ----------
 
@@ -115,6 +131,9 @@ with mlflow.start_run(run_name="ekb-eval") as run:
                        "min_groundedness": s.min_groundedness})
     for r in reports:
         mlflow.log_metrics(r.as_metrics())
+    for t, r in by_type.items():
+        if t != "all":
+            mlflow.log_metrics({f"{t}_{k}": v for k, v in r.as_metrics().items()})
     best_rrf = rrf_trials[0]
     mlflow.log_params({"rrf_best_keyword_weight": best_rrf.keyword_weight,
                        "rrf_best_vector_weight": best_rrf.vector_weight, "rrf_best_k": best_rrf.rrf_k})

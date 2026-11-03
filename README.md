@@ -105,7 +105,7 @@ Example — same question, two employees:
 
 ## 📊 Evaluation
 
-Golden set: **25 questions** in `data/eval/golden_questions.jsonl` — answerable questions with known source docs, questions the user is **not entitled** to, out-of-scope questions and prompt-injection attempts.
+Golden set: **40 questions** in `data/eval/golden_questions.jsonl` — answerable questions with known source docs, questions the user is **not entitled** to, out-of-scope questions and prompt-injection attempts. Answerable rows are typed `single_doc` (20), `paraphrase` (8, little word overlap with the source) or `multi_doc` (7, answer spans two documents); `validate_golden` checks every row against the document ACLs before the set is used as a gate.
 
 **Retriever, top 5 (offline run in CI — local BM25 + hashing embeddings, 80 chunks):**
 
@@ -114,6 +114,16 @@ Golden set: **25 questions** in `data/eval/golden_questions.jsonl` — answerabl
 | Keyword (BM25) | 1.00 | 1.00 | 1.00 |
 | Vector | 0.95 | 0.95 | 0.93 |
 | **Hybrid (RRF)** | **1.00** | **1.00** | **0.97** |
+
+**By question type** (hybrid top 5, offline; `evaluate_retrieval_by_type`):
+
+| Slice | n | Hit rate | Context recall | MRR | Keyword-only MRR |
+|---|:-:|:-:|:-:|:-:|:-:|
+| Single-doc | 20 | 1.00 | 1.00 | 0.97 | 1.00 |
+| Paraphrase | 8 | 1.00 | 1.00 | **0.62** | 0.45 |
+| Multi-doc (both sources in top 5) | 7 | 1.00 | 1.00 | 1.00 | 1.00 |
+
+Paraphrases are the weak slice: hybrid still finds every source (keyword alone misses 2 of 8), but ranks it lower. The single-doc table above and the RRF tuning below were measured on the original 20 answerable questions.
 
 **RRF weight tuning** (`python scripts/tune_rrf.py`, hybrid top 5, same offline setup):
 
