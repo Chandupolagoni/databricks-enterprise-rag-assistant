@@ -8,7 +8,7 @@ Items are picked roughly top to bottom; tick an item (`[x]`) in the same PR that
 - [x] Query rewriting for follow-up questions (conversation history → standalone question)
 - [x] Metadata boosting: prefer the latest `version` of a document; filter by `category` when the question names one
 - [x] Tune RRF weights (keyword vs vector) from the golden set and record the result in the README
-- [ ] Add 15 more golden questions (multi-document and paraphrased questions)
+- [x] Add 15 more golden questions (multi-document and paraphrased questions)
 
 ## GraphRAG (policy knowledge graph)
 - [ ] Fixed graph schema: entities `Policy`, `Regulation`, `Department`, `EmployeeRole`, `TransactionType`; relations `GOVERNED_BY`, `APPLIES_TO`, `OWNED_BY`, `REQUIRES`

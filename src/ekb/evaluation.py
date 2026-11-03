@@ -12,18 +12,79 @@ Generation:
   * refusal_accuracy    — out-of-scope / unauthorized questions should be refused
   * LLM-as-judge prompt — JUDGE_PROMPT, run with the judge endpoint for a semantic score
     (RAGAS or ``mlflow.genai.evaluate`` scorers can be plugged in the same way)
+
+Golden rows carry an optional ``type`` (``single_doc`` by default, ``paraphrase`` — little word
+overlap with the source — or ``multi_doc`` — the answer spans two documents). Aggregate scores
+hide a weak slice, so ``evaluate_retrieval_by_type`` reports each slice separately, and
+``validate_golden`` checks a growing set for labelling mistakes (unknown docs, a relevant doc the
+asking user may not read, a ``multi_doc`` row with one document) before it is trusted as a gate.
 """
 from __future__ import annotations
 
+import csv
 import json
 import re
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean
 
+from .rbac import acl_tag
+
+GOLDEN_TYPES = ("single_doc", "paraphrase", "multi_doc")
+EXPECT_VALUES = ("answer", "refuse", "blocked")
+
 
 def load_golden(path: str | Path) -> list[dict]:
     return [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def question_type(row: dict) -> str:
+    return row.get("type") or "single_doc"
+
+
+def filter_golden(golden: list[dict], types: str | tuple[str, ...]) -> list[dict]:
+    """Rows of the given question type(s); refusal / blocked rows are typed ``single_doc``."""
+    wanted = {types} if isinstance(types, str) else set(types)
+    return [g for g in golden if question_type(g) in wanted]
+
+
+def load_document_acl(path: str | Path) -> dict[str, str]:
+    """``doc_id -> acl_tag`` from the document metadata CSV."""
+    with Path(path).open(encoding="utf-8") as f:
+        return {r["doc_id"]: acl_tag(r["business_unit"], r["access_level"]) for r in csv.DictReader(f)}
+
+
+def validate_golden(golden: list[dict], users: dict, doc_acl: dict[str, str]) -> list[str]:
+    """Return a list of labelling problems (empty when the set is consistent)."""
+    problems = []
+    for qid, n in Counter(g.get("id") for g in golden).items():
+        if n > 1:
+            problems.append(f"{qid}: duplicate id")
+    for g in golden:
+        qid, expect, rel = g.get("id", "?"), g.get("expect"), g.get("relevant_doc_ids") or []
+        if expect not in EXPECT_VALUES:
+            problems.append(f"{qid}: unknown expect {expect!r}")
+        if question_type(g) not in GOLDEN_TYPES:
+            problems.append(f"{qid}: unknown type {g.get('type')!r}")
+        user = users.get(g.get("user_id"))
+        if user is None:
+            problems.append(f"{qid}: unknown user {g.get('user_id')!r}")
+        if expect == "answer":
+            if not rel:
+                problems.append(f"{qid}: answerable question without relevant_doc_ids")
+            if not g.get("expected_facts"):
+                problems.append(f"{qid}: answerable question without expected_facts")
+        elif rel:
+            problems.append(f"{qid}: {expect} question must not list relevant_doc_ids")
+        if question_type(g) == "multi_doc" and len(set(rel)) < 2:
+            problems.append(f"{qid}: multi_doc question needs at least two relevant documents")
+        for d in rel:
+            if d not in doc_acl:
+                problems.append(f"{qid}: unknown document {d!r}")
+            elif user is not None and doc_acl[d] not in set(user.allowed_tags()):
+                problems.append(f"{qid}: {g['user_id']} is not entitled to {d} ({doc_acl[d]})")
+    return problems
 
 
 def hit_rate(retrieved_docs: list[str], relevant: set[str]) -> float:
@@ -85,6 +146,17 @@ def evaluate_retrieval(retriever, golden: list[dict], users: dict, k: int = 5, m
         rr.append(reciprocal_rank(docs, rel))
     r = lambda xs: round(mean(xs), 4) if xs else 0.0  # noqa: E731
     return RetrievalReport(mode + ("+rerank" if reranker else ""), k, len(rows), r(hr), r(cp), r(cr), r(rr))
+
+
+def evaluate_retrieval_by_type(retriever, golden: list[dict], users: dict, k: int = 5, mode: str = "hybrid",
+                               reranker=None) -> dict[str, RetrievalReport]:
+    """One ``RetrievalReport`` per question type present in ``golden`` plus ``all``."""
+    out = {"all": evaluate_retrieval(retriever, golden, users, k=k, mode=mode, reranker=reranker)}
+    for t in GOLDEN_TYPES:
+        rows = [g for g in filter_golden(golden, t) if g.get("relevant_doc_ids")]
+        if rows:
+            out[t] = evaluate_retrieval(retriever, rows, users, k=k, mode=mode, reranker=reranker)
+    return out
 
 
 def evaluate_assistant(assistant, golden: list[dict], users: dict) -> tuple[dict, list[dict]]:
