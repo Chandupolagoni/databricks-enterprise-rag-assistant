@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-11-07 — LLM entity and relationship extraction into the knowledge graph
+- `ekb.kg_extract`: `LLMGraphExtractor` sends each PII-masked parent passage with the fixed schema to the LLM, parses the JSON reply defensively, normalises type/relation labels, adds relation endpoints the model forgot to list, and routes everything through `validate_graph`; per-run stats (failed passages, reject rate). Notebook 06 extracts the latest version of every document and MERGEs into `silver_kg_nodes` / `silver_kg_edges`, appending rejects to `silver_kg_rejects`.
+- Why: the graph schema had no producer; raw LLM output is unreliable (fenced JSON, invented labels, reversed relations, endpoint errors), so one bad reply must neither crash the batch nor write off-schema facts. 6 new tests with a stub LLM (105 total).
+
 ## 2026-11-07 — Fixed knowledge-graph schema (GraphRAG groundwork)
 - `ekb.kg_schema`: closed vocabulary of 5 entity types and 4 relations with allowed (source, target) type pairs, deterministic `node_id`s for idempotent MERGE, mandatory `doc_id` / `version` / evidence span, `validate_graph` (splits valid vs rejected with reasons, de-duplicates), `schema_prompt()` for the extraction LLM and Delta DDL with CHECK constraints; new notebook `06_knowledge_graph` creates `silver_kg_nodes` / `silver_kg_edges`.
 - Why: hybrid search cannot answer relationship questions ("which policies does the Bank Secrecy Act govern?"), and unconstrained LLM extraction produces label sprawl that cannot be validated or audited; off-schema triples are now rejected before they reach Delta. 11 new tests (99 total).
