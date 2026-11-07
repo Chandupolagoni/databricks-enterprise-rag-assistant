@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 05 · Evaluation (Gold)
 # MAGIC
-# MAGIC Golden set: 25 questions (`data/eval/golden_questions.jsonl`) — answerable questions with known source documents, questions a user is **not entitled** to, out-of-scope questions and prompt-injection attempts.
+# MAGIC Golden set: 40 questions (`data/eval/golden_questions.jsonl`) — answerable questions with known source documents, questions a user is **not entitled** to, out-of-scope questions and prompt-injection attempts, plus two harder slices tagged `multi_doc` (the answer spans 2–3 documents) and `paraphrase` (no policy wording reused). Untagged questions form the `core` slice.
 # MAGIC
 # MAGIC | Stage | Metrics |
 # MAGIC |---|---|
@@ -30,7 +30,8 @@ from pyspark.sql import functions as F
 
 from ekb.assistant import KnowledgeAssistant
 from ekb.config import Settings
-from ekb.evaluation import JUDGE_PROMPT, evaluate_assistant, evaluate_retrieval, load_golden, parse_judge
+from ekb.evaluation import (JUDGE_PROMPT, evaluate_assistant, evaluate_retrieval, evaluate_retrieval_by_tag,
+                            load_golden, parse_judge, slice_metrics)
 from ekb.llm import DatabricksLLM
 from ekb.rbac import UserContext
 from ekb.rerank import LLMReranker
@@ -64,6 +65,17 @@ reports = [
     evaluate_retrieval(retriever, golden, users, k=5, mode="hybrid", reranker=reranker),
 ]
 display(pd.DataFrame([r.__dict__ for r in reports]))
+
+# COMMAND ----------
+
+# MAGIC %md ### Retriever by slice (core vs multi-document vs paraphrased)
+# MAGIC The overall average is dominated by questions that reuse the policy wording; the per-slice view shows
+# MAGIC where vector search actually has to carry the query.
+
+# COMMAND ----------
+
+slice_reports = evaluate_retrieval_by_tag(retriever, golden, users, k=5, mode="hybrid", reranker=reranker)
+display(pd.DataFrame([dict(slice=t, **r.__dict__) for t, r in slice_reports.items()]))
 
 # COMMAND ----------
 
@@ -115,6 +127,7 @@ with mlflow.start_run(run_name="ekb-eval") as run:
                        "min_groundedness": s.min_groundedness})
     for r in reports:
         mlflow.log_metrics(r.as_metrics())
+    mlflow.log_metrics(slice_metrics(slice_reports))
     best_rrf = rrf_trials[0]
     mlflow.log_params({"rrf_best_keyword_weight": best_rrf.keyword_weight,
                        "rrf_best_vector_weight": best_rrf.vector_weight, "rrf_best_k": best_rrf.rrf_k})

@@ -87,6 +87,37 @@ def evaluate_retrieval(retriever, golden: list[dict], users: dict, k: int = 5, m
     return RetrievalReport(mode + ("+rerank" if reranker else ""), k, len(rows), r(hr), r(cp), r(cr), r(rr))
 
 
+def question_tags(g: dict, default: str = "core") -> list[str]:
+    """Slice labels of a golden question (``tags``); untagged questions fall into ``default``."""
+    return list(g.get("tags") or [default])
+
+
+def evaluate_retrieval_by_tag(retriever, golden: list[dict], users: dict, k: int = 5, mode: str = "hybrid",
+                              reranker=None, default_tag: str = "core") -> dict[str, RetrievalReport]:
+    """Retrieval metrics per golden-set slice plus ``all``.
+
+    An aggregate over the whole set hides where retrieval is weak: single-document questions that
+    reuse the policy wording are easy, while multi-document and paraphrased questions are the ones
+    users actually ask. Reporting each slice separately makes a regression on a hard slice visible
+    even when the overall average barely moves. A question with several tags counts in each slice.
+    """
+    slices: dict[str, list[dict]] = {}
+    for g in golden:
+        if not g.get("relevant_doc_ids"):
+            continue
+        for t in question_tags(g, default_tag):
+            slices.setdefault(t, []).append(g)
+    out = {"all": evaluate_retrieval(retriever, golden, users, k=k, mode=mode, reranker=reranker)}
+    for tag in sorted(slices):
+        out[tag] = evaluate_retrieval(retriever, slices[tag], users, k=k, mode=mode, reranker=reranker)
+    return out
+
+
+def slice_metrics(reports: dict[str, RetrievalReport]) -> dict[str, float]:
+    """Flatten per-slice reports into MLflow metric names, e.g. ``paraphrase_hybrid+rerank_at5_mrr``."""
+    return {f"{tag}_{name}": v for tag, rep in reports.items() for name, v in rep.as_metrics().items()}
+
+
 def evaluate_assistant(assistant, golden: list[dict], users: dict) -> tuple[dict, list[dict]]:
     details = []
     for g in golden:

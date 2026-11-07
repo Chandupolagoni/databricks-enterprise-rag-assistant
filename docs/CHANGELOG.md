@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-11-07 — Golden set: 15 multi-document and paraphrased questions, per-slice metrics
+- 7 `multi_doc` questions (answer spans 2–3 documents) and 8 `paraphrase` questions (no policy wording reused) added to the golden set (25 → 40); `ekb.evaluation.evaluate_retrieval_by_tag` / `slice_metrics` report retrieval metrics per slice, logged to MLflow from notebook 05. New tests check that every relevant doc is readable by the asking user.
+- Why: the 25 original questions mostly echo the policy text, so the 0.95+ metrics overstated quality. Per slice, paraphrased questions drop to MRR@5 0.70 (core 0.95, multi_doc 1.00) — a measurable target for later retrieval work; 4 new tests (88 total).
+
 ## 2026-10-29 — RRF weight tuning on the golden set
 - `ekb.tuning`: `grid_search_rrf` scores keyword/vector weights × `rrf_k` with the retrieval metrics (ties broken towards 1:1), `leave_one_out_rrf` checks whether the selection generalises; `scripts/tune_rrf.py` prints the table; notebook 05 reruns it with `gte-large` embeddings and logs the result to MLflow. Results recorded in the README.
 - Why: the 1:1 RRF weights were an untested assumption. Best grid point (3:1) lifts MRR@5 0.967 → 0.975 on the full set, but leave-one-out MRR stays 0.967, so the balanced default is kept; 4 new tests (84 total).

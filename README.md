@@ -105,7 +105,18 @@ Example — same question, two employees:
 
 ## 📊 Evaluation
 
-Golden set: **25 questions** in `data/eval/golden_questions.jsonl` — answerable questions with known source docs, questions the user is **not entitled** to, out-of-scope questions and prompt-injection attempts.
+Golden set: **40 questions** in `data/eval/golden_questions.jsonl` — answerable questions with known source docs, questions the user is **not entitled** to, out-of-scope questions and prompt-injection attempts, plus two harder tagged slices: **`multi_doc`** (7 questions whose answer spans 2–3 documents) and **`paraphrase`** (8 questions that avoid the policy's own wording).
+
+**Retriever by slice** (hybrid + lexical rerank, top 5, offline):
+
+| Slice | n | Hit rate | Context recall | MRR |
+|---|:-:|:-:|:-:|:-:|
+| core | 20 | 0.95 | 0.95 | 0.95 |
+| multi_doc | 7 | 1.00 | 0.95 | 1.00 |
+| paraphrase | 8 | 1.00 | 1.00 | **0.70** |
+| all | 35 | 0.97 | 0.96 | 0.90 |
+
+Paraphrased questions still find the right document but rank it lower — the hashing embedder used offline cannot bridge synonyms, which is the job of `gte-large` on Databricks.
 
 **Retriever, top 5 (offline run in CI — local BM25 + hashing embeddings, 80 chunks):**
 
@@ -115,7 +126,7 @@ Golden set: **25 questions** in `data/eval/golden_questions.jsonl` — answerabl
 | Vector | 0.95 | 0.95 | 0.93 |
 | **Hybrid (RRF)** | **1.00** | **1.00** | **0.97** |
 
-**RRF weight tuning** (`python scripts/tune_rrf.py`, hybrid top 5, same offline setup):
+**RRF weight tuning** (`python scripts/tune_rrf.py`, hybrid top 5, same offline setup, original 25-question set):
 
 | w_keyword : w_vector | rrf_k | Hit rate | Precision | MRR |
 |:-:|:-:|:-:|:-:|:-:|
@@ -125,7 +136,7 @@ Golden set: **25 questions** in `data/eval/golden_questions.jsonl` — answerabl
 
 Leave-one-out MRR of the tuning procedure is **0.967** — identical to the 1 : 1 default — so the 3 : 1 gain comes from a single golden question and does not generalise. The balanced weights stay; `05_evaluation` reruns the grid with the real `gte-large` embeddings and logs the best point and the leave-one-out MRR to MLflow.
 
-**End to end (offline, deterministic stand-in LLM):** refusal accuracy **0.96** · citation accuracy **0.95** · groundedness **1.00**.
+**End to end (offline, deterministic stand-in LLM, core slice):** refusal accuracy **0.96** · citation accuracy **0.95** · groundedness **1.00**. The stand-in LLM only answers when the context repeats the question's words, so the offline generation gate runs on the core slice; the Databricks run scores all 40.
 
 On Databricks, `05_evaluation` reruns the same set against the real Vector Search index (vector vs hybrid vs hybrid + LLM rerank), adds an **LLM-as-judge** faithfulness and relevance score, logs everything to MLflow and appends to `gold_eval_results`. The job **fails** if hybrid hit rate or refusal accuracy drop below 0.85.
 
@@ -175,7 +186,7 @@ databricks-enterprise-rag-assistant/
 │   ├── raw/<business_unit>/     # 24 synthetic docs in 5 formats
 │   ├── metadata/documents.csv   # business unit, category, access level, version
 │   ├── rbac/user_entitlements.csv
-│   └── eval/golden_questions.jsonl
+│   └── eval/golden_questions.jsonl   # 40 questions, tagged core / multi_doc / paraphrase
 ├── tests/                       # 52 pytest tests incl. an offline end-to-end eval
 ├── resources/ekb_job.yml        # Databricks Job (bundle resource)
 ├── databricks.yml               # Databricks Asset Bundle

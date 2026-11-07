@@ -7,10 +7,13 @@ from ekb.evaluation import (
     context_recall,
     evaluate_assistant,
     evaluate_retrieval,
+    evaluate_retrieval_by_tag,
     hit_rate,
     load_golden,
     parse_judge,
+    question_tags,
     reciprocal_rank,
+    slice_metrics,
 )
 from ekb.llm import EchoLLM
 from ekb.rbac import UserContext
@@ -109,6 +112,42 @@ def test_llm_reranker_falls_back_on_garbage():
 
 
 def test_end_to_end_golden(assistant, users, root):
-    summary, _ = evaluate_assistant(assistant, load_golden(root / "data" / "eval" / "golden_questions.jsonl"), users)
+    # EchoLLM answers only when the context repeats the question's words, so generation is gated on
+    # the core slice; paraphrased and multi-document questions are gated on retrieval below.
+    golden = [g for g in load_golden(root / "data" / "eval" / "golden_questions.jsonl") if question_tags(g) == ["core"]]
+    summary, _ = evaluate_assistant(assistant, golden, users)
     assert summary["refusal_accuracy"] >= 0.9
     assert summary["citation_accuracy"] >= 0.85
+
+
+def test_golden_set_has_hard_slices(root):
+    golden = load_golden(root / "data" / "eval" / "golden_questions.jsonl")
+    assert len({g["id"] for g in golden}) == len(golden) == 40
+    multi = [g for g in golden if "multi_doc" in question_tags(g)]
+    para = [g for g in golden if "paraphrase" in question_tags(g)]
+    assert len(multi) >= 7 and len(para) >= 8
+    assert all(len(g["relevant_doc_ids"]) >= 2 for g in multi)
+
+
+def test_golden_relevant_docs_are_readable_by_the_asking_user(retriever, users, root):
+    # a relevant doc the user cannot see would make the question unanswerable and silently cap recall
+    tags_by_doc = {c["doc_id"]: c["acl_tag"] for c in retriever.chunks}
+    for g in load_golden(root / "data" / "eval" / "golden_questions.jsonl"):
+        allowed = set(users[g["user_id"]].allowed_tags())
+        for d in g.get("relevant_doc_ids", []):
+            assert tags_by_doc[d] in allowed, (g["id"], d)
+
+
+def test_retrieval_by_slice(retriever, users, root):
+    golden = load_golden(root / "data" / "eval" / "golden_questions.jsonl")
+    reports = evaluate_retrieval_by_tag(retriever, golden, users, k=5, reranker=LexicalReranker())
+    assert set(reports) == {"all", "core", "multi_doc", "paraphrase"}
+    assert reports["core"].n + reports["multi_doc"].n + reports["paraphrase"].n == reports["all"].n
+    assert reports["multi_doc"].hit_rate == 1.0 and reports["multi_doc"].context_recall >= 0.9
+    assert reports["paraphrase"].hit_rate >= 0.85 and reports["paraphrase"].mrr >= 0.6
+    assert "paraphrase_hybrid+rerank_at5_mrr" in slice_metrics(reports)
+
+
+def test_question_tags_default():
+    assert question_tags({"id": "x"}) == ["core"]
+    assert question_tags({"tags": ["paraphrase"]}, default="other") == ["paraphrase"]
