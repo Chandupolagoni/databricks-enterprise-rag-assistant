@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-11-07 — Fixed knowledge-graph schema (GraphRAG groundwork)
+- `ekb.kg_schema`: closed vocabulary of 5 entity types and 4 relations with allowed (source, target) type pairs, deterministic `node_id`s for idempotent MERGE, mandatory `doc_id` / `version` / evidence span, `validate_graph` (splits valid vs rejected with reasons, de-duplicates), `schema_prompt()` for the extraction LLM and Delta DDL with CHECK constraints; new notebook `06_knowledge_graph` creates `silver_kg_nodes` / `silver_kg_edges`.
+- Why: hybrid search cannot answer relationship questions ("which policies does the Bank Secrecy Act govern?"), and unconstrained LLM extraction produces label sprawl that cannot be validated or audited; off-schema triples are now rejected before they reach Delta. 11 new tests (99 total).
+
 ## 2026-11-07 — Golden set: 15 multi-document and paraphrased questions, per-slice metrics
 - 7 `multi_doc` questions (answer spans 2–3 documents) and 8 `paraphrase` questions (no policy wording reused) added to the golden set (25 → 40); `ekb.evaluation.evaluate_retrieval_by_tag` / `slice_metrics` report retrieval metrics per slice, logged to MLflow from notebook 05. New tests check that every relevant doc is readable by the asking user.
 - Why: the 25 original questions mostly echo the policy text, so the 0.95+ metrics overstated quality. Per slice, paraphrased questions drop to MRR@5 0.70 (core 0.95, multi_doc 1.00) — a measurable target for later retrieval work; 4 new tests (88 total).
