@@ -12,7 +12,7 @@ Items are picked roughly top to bottom; tick an item (`[x]`) in the same PR that
 
 ## GraphRAG (policy knowledge graph)
 - [x] Fixed graph schema: entities `Policy`, `Regulation`, `Department`, `EmployeeRole`, `TransactionType`; relations `GOVERNED_BY`, `APPLIES_TO`, `OWNED_BY`, `REQUIRES`
-- [ ] LLM entity + relationship extraction notebook writing `silver_kg_nodes` / `silver_kg_edges` Delta tables, each with source `doc_id`, `version` and evidence span
+- [x] LLM entity + relationship extraction notebook writing `silver_kg_nodes` / `silver_kg_edges` Delta tables, each with source `doc_id`, `version` and evidence span
 - [ ] Entity resolution: normalise names, de-duplicate entities, merge aliases
 - [ ] Fact validation: keep an edge only when its evidence span is found in the source passage
 - [ ] Graph retrieval step: expand the top chunks' entities by one hop and add linked policies to the context
