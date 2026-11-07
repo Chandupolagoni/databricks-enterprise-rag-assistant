@@ -181,13 +181,14 @@ databricks-enterprise-rag-assistant/
 │   ├── 02_parse_and_chunk.py    # silver_documents, silver_chunks
 │   ├── 03_vector_index.py       # Vector Search endpoint + Delta Sync index
 │   ├── 04_assistant.py          # demo: citations, RBAC, guardrails
-│   └── 05_evaluation.py         # metrics, LLM judge, MLflow, quality gate
+│   ├── 05_evaluation.py         # metrics, LLM judge, MLflow, quality gate
+│   └── 06_knowledge_graph.py    # GraphRAG: fixed-schema silver_kg_nodes / silver_kg_edges
 ├── data/
 │   ├── raw/<business_unit>/     # 24 synthetic docs in 5 formats
 │   ├── metadata/documents.csv   # business unit, category, access level, version
 │   ├── rbac/user_entitlements.csv
 │   └── eval/golden_questions.jsonl   # 40 questions, tagged core / multi_doc / paraphrase
-├── tests/                       # 52 pytest tests incl. an offline end-to-end eval
+├── tests/                       # 99 pytest tests incl. an offline end-to-end eval
 ├── resources/ekb_job.yml        # Databricks Job (bundle resource)
 ├── databricks.yml               # Databricks Asset Bundle
 ├── scripts/generate_corpus.py   # regenerates the sample corpus
