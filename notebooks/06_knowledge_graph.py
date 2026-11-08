@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 06 · Policy knowledge graph (GraphRAG) — schema and LLM extraction
+# MAGIC # 06 · Policy knowledge graph (GraphRAG) — schema, LLM extraction and entity resolution
 # MAGIC
 # MAGIC Hybrid search answers "what does the wire SOP say?" but not "which policies does the Bank Secrecy Act
 # MAGIC govern?" — that answer lives in relationships across documents. This notebook creates the graph tables with
@@ -26,6 +26,7 @@ import pandas as pd
 from pyspark.sql import functions as F
 
 from ekb.kg_extract import LLMGraphExtractor
+from ekb.kg_resolve import EntityResolver
 from ekb.kg_schema import KGEdge, KGNode, kg_table_ddl, node_id, schema_prompt, validate_graph
 from ekb.llm import DatabricksLLM
 
@@ -80,6 +81,25 @@ parents = spark.sql(f"""
 extractor = LLMGraphExtractor(DatabricksLLM(s.llm_endpoint, max_tokens=1500))
 result = extractor.extract(parents)
 result.stats
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Entity resolution
+# MAGIC The LLM names one entity many ways ("AML policy", "AML & KYC Policy", "BSA" vs "Bank Secrecy Act"). The
+# MAGIC resolver merges them per entity type — alias table, core-token signature, acronym, and (policies only) a unique
+# MAGIC match against the document catalog — rewires edges to the canonical ids and logs every merge with the rule
+# MAGIC that fired to `silver_kg_aliases`.
+
+# COMMAND ----------
+
+titles = [r.title for r in spark.table(s.table("bronze_documents")).select("title").distinct().collect()]
+resolved = EntityResolver(catalog={"Policy": titles}).resolve(result.nodes, result.edges)
+result.nodes, result.edges = resolved.nodes, resolved.edges
+if resolved.aliases:
+    (spark.createDataFrame(pd.DataFrame(resolved.alias_rows())).withColumn("resolved_at", F.current_timestamp())
+     .write.mode("overwrite").saveAsTable(s.table("silver_kg_aliases")))
+resolved.stats
 
 # COMMAND ----------
 
