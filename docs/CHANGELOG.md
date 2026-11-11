@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-11-11 — Optional Neo4j export (Cypher MERGE upserts)
+- `ekb.kg_neo4j`: `export_statements` re-validates the graph, creates a unique `node_id` constraint per label, batches `UNWIND $rows … MERGE` upserts for nodes (per label) and relationships (per source label × relation × target label), stamps an `export_id` and optionally prunes facts missing from the current snapshot; `run_export` runs DDL then one write transaction with the `neo4j` driver; `to_cypher_script` renders an escaped `.cypher` file. `scripts/export_neo4j.py` exports the fixture graph; notebook 06 exports the Delta tables when `neo4j_uri` is set (credentials from a secret scope).
+- Why: analysts want multi-hop Cypher and graph exploration, but a naive export would duplicate nodes on every run and interpolate LLM-extracted text into Cypher; labels/types now come only from the fixed schema and all values are parameters (an injection-style evidence string stays data). 6 new tests (128 total).
+
 ## 2026-11-11 — Graph retrieval step (one-hop policy expansion)
 - `ekb.graph_retrieval`: `GraphExpander` maps the reranked chunks' documents to their `Policy` nodes, follows outgoing `REQUIRES` / `GOVERNED_BY` edges to other policies one hop (rank order, de-duplicated), and appends each linked policy's passage with the most question overlap — only when the user may read it, under a separate token budget and a `max_added` cap — tagged with `graph_link`. `KnowledgeAssistant(graph_expander=...)` runs it in a `graph.expand` span; notebook 04 builds it from `silver_kg_edges`. Corpus-grounded fixture graph in `data/kg/policy_graph_fixture.json` for offline tests.
 - Why: similarity search finds the SOP a user asks about but not the policies it depends on ("requires the AML and KYC Policy"), which use different words and fall outside top-n. Offline (hybrid + lexical rerank, top 5): context recall 0.962 → 1.000 on all 35 retrieval questions, multi-doc 0.952 → 1.000, precision unchanged; 7 new tests (122 total).

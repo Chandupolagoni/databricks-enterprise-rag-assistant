@@ -170,6 +170,7 @@ databricks-enterprise-rag-assistant/
 │   ├── query_rewrite.py         # follow-up question → standalone question
 │   ├── metadata_boost.py        # latest-version preference + category filter
 │   ├── kg_schema.py / kg_extract.py / kg_validate.py / kg_resolve.py  # knowledge graph build
+│   ├── kg_neo4j.py              # optional Neo4j export (parameterised Cypher MERGE)
 │   ├── graph_retrieval.py       # one-hop graph expansion of the retrieved policies
 │   ├── rbac.py                  # entitlements → acl_tag filter
 │   ├── guardrails.py            # input filter, PII masking, output verification
@@ -185,7 +186,7 @@ databricks-enterprise-rag-assistant/
 │   ├── 03_vector_index.py       # Vector Search endpoint + Delta Sync index
 │   ├── 04_assistant.py          # demo: citations, RBAC, guardrails
 │   ├── 05_evaluation.py         # metrics, LLM judge, MLflow, quality gate
-│   └── 06_knowledge_graph.py    # GraphRAG: schema, LLM extraction, fact validation, entity resolution → silver_kg_*
+│   └── 06_knowledge_graph.py    # GraphRAG: extraction, validation, resolution → silver_kg_* (+ Neo4j export)
 ├── data/
 │   ├── raw/<business_unit>/     # 24 synthetic docs in 5 formats
 │   ├── metadata/documents.csv   # business unit, category, access level, version
@@ -195,6 +196,7 @@ databricks-enterprise-rag-assistant/
 ├── resources/ekb_job.yml        # Databricks Job (bundle resource)
 ├── databricks.yml               # Databricks Asset Bundle
 ├── scripts/generate_corpus.py   # regenerates the sample corpus
+├── scripts/export_neo4j.py      # knowledge graph → Cypher MERGE script for cypher-shell
 └── docs/                        # design decisions, changelog
 ```
 
