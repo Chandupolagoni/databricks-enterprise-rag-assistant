@@ -1,0 +1,113 @@
+{
+ "description": "Hand-curated policy graph fixture for offline tests; every edge quotes a sentence of the synthetic corpus (fictional firm).",
+ "edges": [
+  {
+   "doc_id": "cmp_aml_kyc_policy",
+   "source_type": "Policy",
+   "source": "Anti-Money Laundering and KYC Policy",
+   "relation": "GOVERNED_BY",
+   "target_type": "Regulation",
+   "target": "Bank Secrecy Act",
+   "evidence": "The policy is owned by the Compliance department and is governed by the Bank Secrecy Act and the USA PATRIOT Act."
+  },
+  {
+   "doc_id": "cmp_aml_kyc_policy",
+   "source_type": "Policy",
+   "source": "Anti-Money Laundering and KYC Policy",
+   "relation": "GOVERNED_BY",
+   "target_type": "Regulation",
+   "target": "USA PATRIOT Act",
+   "evidence": "The policy is owned by the Compliance department and is governed by the Bank Secrecy Act and the USA PATRIOT Act."
+  },
+  {
+   "doc_id": "cmp_aml_kyc_policy",
+   "source_type": "Policy",
+   "source": "Anti-Money Laundering and KYC Policy",
+   "relation": "OWNED_BY",
+   "target_type": "Department",
+   "target": "Compliance",
+   "evidence": "The policy is owned by the Compliance department"
+  },
+  {
+   "doc_id": "cmp_sar_filing_sop",
+   "source_type": "Policy",
+   "source": "SOP: Suspicious Activity Report Filing",
+   "relation": "REQUIRES",
+   "target_type": "Policy",
+   "target": "Anti-Money Laundering and KYC Policy",
+   "evidence": "It requires the AML and KYC Policy."
+  },
+  {
+   "doc_id": "ops_wire_transfer_sop",
+   "source_type": "Policy",
+   "source": "SOP: Outgoing Wire Transfer Processing",
+   "relation": "REQUIRES",
+   "target_type": "Policy",
+   "target": "Anti-Money Laundering and KYC Policy",
+   "evidence": "This SOP requires the AML and KYC Policy."
+  },
+  {
+   "doc_id": "wm_client_onboarding_sop",
+   "source_type": "Policy",
+   "source": "SOP: Wealth Client Onboarding",
+   "relation": "REQUIRES",
+   "target_type": "Policy",
+   "target": "Anti-Money Laundering and KYC Policy",
+   "evidence": "This SOP requires the AML and KYC Policy and the Investment Suitability Policy."
+  },
+  {
+   "doc_id": "wm_client_onboarding_sop",
+   "source_type": "Policy",
+   "source": "SOP: Wealth Client Onboarding",
+   "relation": "REQUIRES",
+   "target_type": "Policy",
+   "target": "Investment Suitability Policy",
+   "evidence": "This SOP requires the AML and KYC Policy and the Investment Suitability Policy."
+  },
+  {
+   "doc_id": "wm_suitability_policy",
+   "source_type": "Policy",
+   "source": "Investment Suitability Policy",
+   "relation": "GOVERNED_BY",
+   "target_type": "Regulation",
+   "target": "FINRA Rule 2111",
+   "evidence": "The policy is governed by FINRA Rule 2111 and Regulation Best Interest."
+  },
+  {
+   "doc_id": "as_securities_lending_policy",
+   "source_type": "Policy",
+   "source": "Securities Lending Collateral Policy",
+   "relation": "GOVERNED_BY",
+   "target_type": "Regulation",
+   "target": "SEC Rule 15c3-3",
+   "evidence": "The policy is governed by SEC Rule 15c3-3."
+  },
+  {
+   "doc_id": "risk_model_risk_policy",
+   "source_type": "Policy",
+   "source": "Model Risk Management Policy",
+   "relation": "GOVERNED_BY",
+   "target_type": "Regulation",
+   "target": "SR 11-7",
+   "evidence": "The policy is governed by Federal Reserve guidance SR 11-7."
+  },
+  {
+   "doc_id": "tech_genai_usage_policy",
+   "source_type": "Policy",
+   "source": "Generative AI Acceptable Use Policy",
+   "relation": "GOVERNED_BY",
+   "target_type": "Policy",
+   "target": "Model Risk Management Policy",
+   "evidence": "The policy is owned by the Technology department and governed by the Model Risk Management Policy."
+  },
+  {
+   "doc_id": "tech_genai_usage_policy",
+   "source_type": "Policy",
+   "source": "Generative AI Acceptable Use Policy",
+   "relation": "OWNED_BY",
+   "target_type": "Department",
+   "target": "Technology",
+   "evidence": "The policy is owned by the Technology department"
+  }
+ ]
+}

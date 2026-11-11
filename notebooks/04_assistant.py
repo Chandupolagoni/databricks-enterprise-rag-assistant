@@ -28,6 +28,8 @@ import mlflow
 
 from ekb.assistant import KnowledgeAssistant
 from ekb.config import Settings
+from ekb.graph_retrieval import GraphExpander
+from ekb.kg_schema import KGEdge
 from ekb.llm import DatabricksLLM
 from ekb.metadata_boost import MetadataAwareRetriever, latest_versions
 from ekb.parent_child import ParentExpander
@@ -54,6 +56,12 @@ parents = [r.asDict() for r in spark.table(s.table("silver_parents")).drop("chun
 # so a stale version is demoted even when the newest one was not retrieved.
 doc_versions = latest_versions(r.asDict() for r in spark.table(s.table("bronze_documents"))
                                .select("doc_id", "version").collect())
+# Graph expansion: follow REQUIRES / GOVERNED_BY one hop from the reranked documents' policies
+# (silver_kg_edges, built and validated in notebook 06) and add the linked policies' best passage.
+kg_cols = ("src_id", "relation", "dst_id", "doc_id", "version", "evidence")
+kg_edges = [KGEdge(**{c: r[c] for c in kg_cols}) for r in spark.table(s.table("silver_kg_edges")).collect()]
+titles = {r.doc_id: r.title for r in spark.table(s.table("bronze_documents")).select("doc_id", "title").distinct().collect()}
+latest_parents = [p for p in parents if p["version"] == doc_versions.get(p["doc_id"], p["version"])]
 assistant = KnowledgeAssistant(
     retriever=MetadataAwareRetriever(DatabricksHybridRetriever(s.vs_endpoint, s.vs_index),
                                      catalog_versions=doc_versions),
@@ -62,6 +70,7 @@ assistant = KnowledgeAssistant(
     settings=s,
     context_expander=ParentExpander(parents, s.context_max_tokens),
     query_rewriter=LLMQueryRewriter(llm),
+    graph_expander=GraphExpander(kg_edges, latest_parents, titles, max_added=2),
 )
 
 users = {r.user_id: UserContext(r.user_id, tuple(b for b in (r.business_units or "").split(";") if b),
@@ -122,3 +131,14 @@ for q in ["What is the cut-off time for same-day Fedwire payments?", "What about
 # COMMAND ----------
 
 # MAGIC %md Open the **Traces** tab of the `ekb-assistant` experiment to inspect each span (inputs, retrieved ids, rerank order, raw LLM output, guardrail verdicts).
+
+# COMMAND ----------
+
+# MAGIC %md ### Graph expansion: policies the retrieved SOP depends on
+# MAGIC The `graph.expand` span lists the links followed (e.g. `SOP: Wealth Client Onboarding REQUIRES Investment Suitability Policy`).
+# MAGIC Linked passages are added only when the user may read them, so the graph never widens RBAC.
+
+# COMMAND ----------
+
+show("Which policies must be satisfied before a new wealth client's account can be opened?", "u_wm_advisor")
+show("What does the outgoing wire SOP require?", "u_payments_ops")  # AML policy is compliance-only → not added

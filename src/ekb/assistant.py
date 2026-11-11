@@ -5,6 +5,7 @@
              ─► hybrid retrieval with [3] RBAC filter (top-k candidates)
              ─► rerank (top-n)
              ─► optional parent expansion (child chunk → parent passage, token budget)
+             ─► optional graph expansion (linked policies one hop away, RBAC-checked)
              ─► [2] mask PII in context
              ─► prompt + LLM
              ─► [4] output verification (groundedness + citation check) ─► mask PII in answer
@@ -72,13 +73,14 @@ class AssistantResponse:
 
 class KnowledgeAssistant:
     def __init__(self, retriever, reranker, llm, settings: Settings | None = None, context_expander=None,
-                 query_rewriter=None):
+                 query_rewriter=None, graph_expander=None):
         self.retriever = retriever
         self.reranker = reranker
         self.llm = llm
         self.s = settings or Settings()
         self.context_expander = context_expander     # e.g. parent_child.ParentExpander
         self.query_rewriter = query_rewriter         # e.g. query_rewrite.LLMQueryRewriter
+        self.graph_expander = graph_expander         # e.g. graph_retrieval.GraphExpander
 
     def ask(self, question: str, user: UserContext, history: list[dict] | None = None) -> AssistantResponse:
         """Answer ``question``. ``history`` is the prior chat as ``[{"role", "content"}]``;
@@ -130,6 +132,10 @@ class KnowledgeAssistant:
                 with _span("context.expand", "RETRIEVER") as sp:
                     top = self.context_expander.expand(top)
                     sp.set_outputs({"ids": [c.get("parent_id") or c["chunk_id"] for c in top]})
+            if self.graph_expander is not None:
+                with _span("graph.expand", "RETRIEVER") as sp:
+                    top = self.graph_expander.expand(q_masked.text, top, user)
+                    sp.set_outputs({"links": [c["graph_link"] for c in top if c.get("graph_link")]})
 
             # [2] PII masking of the context before it reaches the LLM
             safe_chunks = []
