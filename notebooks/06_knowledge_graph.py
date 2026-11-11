@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 06 · Policy knowledge graph (GraphRAG) — schema and LLM extraction
+# MAGIC # 06 · Policy knowledge graph (GraphRAG) — schema, LLM extraction and entity resolution
 # MAGIC
 # MAGIC Hybrid search answers "what does the wire SOP say?" but not "which policies does the Bank Secrecy Act
 # MAGIC govern?" — that answer lives in relationships across documents. This notebook creates the graph tables with
@@ -26,6 +26,7 @@ import pandas as pd
 from pyspark.sql import functions as F
 
 from ekb.kg_extract import LLMGraphExtractor
+from ekb.kg_resolve import EntityResolver, catalog_from_documents, resolve_graph
 from ekb.kg_schema import KGEdge, KGNode, kg_table_ddl, node_id, schema_prompt, validate_graph
 from ekb.llm import DatabricksLLM
 
@@ -80,6 +81,25 @@ parents = spark.sql(f"""
 extractor = LLMGraphExtractor(DatabricksLLM(s.llm_endpoint, max_tokens=1500))
 result = extractor.extract(parents)
 result.stats
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Entity resolution
+# MAGIC Passages name the same entity differently ("AML policy", "the AML and KYC Policy", "BSA", "Compliance team").
+# MAGIC `ekb.kg_resolve` merges aliases into canonical names (document titles and business units from
+# MAGIC `bronze_documents` are authoritative), remaps edges, drops duplicate edges and self loops the merge creates,
+# MAGIC and leaves ambiguous aliases ("risk policy") unmerged. Every merge is written to `silver_kg_aliases` for review.
+
+# COMMAND ----------
+
+docs = spark.sql(f"SELECT DISTINCT title, business_unit FROM {s.table('bronze_documents')}").toPandas()
+resolution = resolve_graph(result.nodes, result.edges, EntityResolver(catalog_from_documents(docs.to_dict("records"))))
+result.nodes, result.edges = resolution.nodes, resolution.edges
+if resolution.aliases:
+    (spark.createDataFrame(pd.DataFrame(resolution.aliases)).withColumn("resolved_at", F.current_timestamp())
+     .write.mode("overwrite").saveAsTable(s.table("silver_kg_aliases")))
+resolution.stats
 
 # COMMAND ----------
 
