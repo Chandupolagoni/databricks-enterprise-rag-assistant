@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-11-11 — Knowledge-graph entity resolution
+- `ekb.kg_resolve`: `EntityResolver` maps aliases to canonical names within an entity type (resolution key without generic words, acronym expansion, initials, unique token containment, near-identical keys for typos), with document titles / business units as an authoritative catalog; `resolve_graph` remaps edges, drops duplicates and merge-induced self loops and returns alias rows. Notebook 06 resolves before the MERGE and writes `silver_kg_aliases`.
+- Why: the same policy, regulation or department was extracted under several names ("AML policy", "BSA", "Compliance team"), splitting its edges across nodes so one-hop expansion would miss them; ambiguous aliases ("risk policy") are deliberately left unmerged because a wrong merge mixes two policies' obligations. On the test fragment 8 nodes → 4, 5 edges → 3; 5 new tests (110 total).
+
 ## 2026-11-07 — LLM entity and relationship extraction into the knowledge graph
 - `ekb.kg_extract`: `LLMGraphExtractor` sends each PII-masked parent passage with the fixed schema to the LLM, parses the JSON reply defensively, normalises type/relation labels, adds relation endpoints the model forgot to list, and routes everything through `validate_graph`; per-run stats (failed passages, reject rate). Notebook 06 extracts the latest version of every document and MERGEs into `silver_kg_nodes` / `silver_kg_edges`, appending rejects to `silver_kg_rejects`.
 - Why: the graph schema had no producer; raw LLM output is unreliable (fenced JSON, invented labels, reversed relations, endpoint errors), so one bad reply must neither crash the batch nor write off-schema facts. 6 new tests with a stub LLM (105 total).
