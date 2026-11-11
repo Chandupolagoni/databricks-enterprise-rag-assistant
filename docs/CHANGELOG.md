@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-11-11 — Knowledge-graph fact validation
+- `ekb.kg_validate`: `validate_facts` keeps an edge only when its evidence span occurs in the source `(doc_id, version)` text — exact after whitespace/quote/markdown normalisation or near-verbatim (token-window `difflib` ratio ≥ 0.9, spans under 4 tokens exact only), with the source PII-masked like the extraction prompt — and the span mentions the edge's target; ungrounded orphan nodes are dropped, rejects carry reasons. Notebook 06 validates before entity resolution.
+- Why: the LLM is asked for verbatim evidence but can paraphrase, stitch sentences or invent a justification, and an unsupported "policy X implements regulation Y" edge would be served to the assistant as fact. On the test fixture 3 of 6 edges are rejected (invented regulation, span not naming its target, missing source version); 5 new tests (115 total).
+
 ## 2026-11-11 — Knowledge-graph entity resolution
 - `ekb.kg_resolve`: `EntityResolver` maps aliases to canonical names within an entity type (resolution key without generic words, acronym expansion, initials, unique token containment, near-identical keys for typos), with document titles / business units as an authoritative catalog; `resolve_graph` remaps edges, drops duplicates and merge-induced self loops and returns alias rows. Notebook 06 resolves before the MERGE and writes `silver_kg_aliases`.
 - Why: the same policy, regulation or department was extracted under several names ("AML policy", "BSA", "Compliance team"), splitting its edges across nodes so one-hop expansion would miss them; ambiguous aliases ("risk policy") are deliberately left unmerged because a wrong merge mixes two policies' obligations. On the test fragment 8 nodes → 4, 5 edges → 3; 5 new tests (110 total).
