@@ -2,6 +2,10 @@
 
 All notable changes to this project. Newest first.
 
+## 2026-11-11 — Graph retrieval step (one-hop policy expansion)
+- `ekb.graph_retrieval`: `GraphExpander` maps the reranked chunks' documents to their `Policy` nodes, follows outgoing `REQUIRES` / `GOVERNED_BY` edges to other policies one hop (rank order, de-duplicated), and appends each linked policy's passage with the most question overlap — only when the user may read it, under a separate token budget and a `max_added` cap — tagged with `graph_link`. `KnowledgeAssistant(graph_expander=...)` runs it in a `graph.expand` span; notebook 04 builds it from `silver_kg_edges`. Corpus-grounded fixture graph in `data/kg/policy_graph_fixture.json` for offline tests.
+- Why: similarity search finds the SOP a user asks about but not the policies it depends on ("requires the AML and KYC Policy"), which use different words and fall outside top-n. Offline (hybrid + lexical rerank, top 5): context recall 0.962 → 1.000 on all 35 retrieval questions, multi-doc 0.952 → 1.000, precision unchanged; 7 new tests (122 total).
+
 ## 2026-11-11 — Knowledge-graph fact validation
 - `ekb.kg_validate`: `validate_facts` keeps an edge only when its evidence span occurs in the source `(doc_id, version)` text — exact after whitespace/quote/markdown normalisation or near-verbatim (token-window `difflib` ratio ≥ 0.9, spans under 4 tokens exact only), with the source PII-masked like the extraction prompt — and the span mentions the edge's target; ungrounded orphan nodes are dropped, rejects carry reasons. Notebook 06 validates before entity resolution.
 - Why: the LLM is asked for verbatim evidence but can paraphrase, stitch sentences or invent a justification, and an unsupported "policy X implements regulation Y" edge would be served to the assistant as fact. On the test fixture 3 of 6 edges are rejected (invented regulation, span not naming its target, missing source version); 5 new tests (115 total).

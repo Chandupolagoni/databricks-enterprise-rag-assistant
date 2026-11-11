@@ -15,7 +15,7 @@ Items are picked roughly top to bottom; tick an item (`[x]`) in the same PR that
 - [x] LLM entity + relationship extraction notebook writing `silver_kg_nodes` / `silver_kg_edges` Delta tables, each with source `doc_id`, `version` and evidence span
 - [x] Entity resolution: normalise names, de-duplicate entities, merge aliases
 - [x] Fact validation: keep an edge only when its evidence span is found in the source passage
-- [ ] Graph retrieval step: expand the top chunks' entities by one hop and add linked policies to the context
+- [x] Graph retrieval step: expand the top chunks' entities by one hop and add linked policies to the context
 - [ ] Optional Neo4j export: Cypher `MERGE` upsert script for nodes and relationships
 
 ## Guardrails and security

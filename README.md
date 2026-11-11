@@ -39,6 +39,7 @@ A bank with many business units (compliance, operations, wealth management, asse
 | 💬 | **Follow-up query rewriting** | conversation history → standalone question (LLM rewrite, PII-masked history, heuristic fallback, re-checked by the input guardrail); follow-up MRR@5 0.81 → 0.92 |
 | 🏷️ | **Metadata boosting** | superseded document versions are demoted behind current ones; a category named in the question ("per the SOP", "KB article") filters candidates with a safe fallback; category-named MRR@5 0.83 → 1.00 |
 | 🧩 | **Parent-child retrieval** | search small chunks for precision, send their parent passage (`silver_parents`) to the LLM under a token budget |
+| 🕸️ | **Graph expansion (GraphRAG)** | follow `REQUIRES` / `GOVERNED_BY` one hop from the retrieved policies in the validated knowledge graph and add the linked policies' best passage (RBAC-checked, capped); context recall@5 0.962 → 1.000 (multi-doc 0.952 → 1.000) |
 | 🛡️ | **4 guardrails** | input filtration · PII masking · RBAC metadata filtering · output groundedness verification |
 | 📎 | **Citations** | every answer lists doc id, title, section and file path |
 | 📊 | **Evaluation** | hit rate, context precision/recall, MRR, answer correctness, refusal accuracy, LLM-as-judge |
@@ -168,6 +169,8 @@ databricks-enterprise-rag-assistant/
 │   ├── parent_child.py          # small-to-big: chunk → parent passage expansion
 │   ├── query_rewrite.py         # follow-up question → standalone question
 │   ├── metadata_boost.py        # latest-version preference + category filter
+│   ├── kg_schema.py / kg_extract.py / kg_validate.py / kg_resolve.py  # knowledge graph build
+│   ├── graph_retrieval.py       # one-hop graph expansion of the retrieved policies
 │   ├── rbac.py                  # entitlements → acl_tag filter
 │   ├── guardrails.py            # input filter, PII masking, output verification
 │   ├── prompting.py             # citation-forcing prompt
