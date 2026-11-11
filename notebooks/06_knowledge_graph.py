@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 06 · Policy knowledge graph (GraphRAG) — schema, LLM extraction, fact validation and entity resolution
+# MAGIC # 06 · Policy knowledge graph (GraphRAG) — schema, LLM extraction, fact validation, entity resolution and optional Neo4j export
 # MAGIC
 # MAGIC Hybrid search answers "what does the wire SOP say?" but not "which policies does the Bank Secrecy Act
 # MAGIC govern?" — that answer lives in relationships across documents. This notebook creates the graph tables with
@@ -34,6 +34,7 @@ from ekb.llm import DatabricksLLM
 dbutils.widgets.text("catalog", "workspace")
 dbutils.widgets.text("schema", "ekb")
 dbutils.widgets.text("llm_endpoint", "databricks-meta-llama-3-3-70b-instruct")
+dbutils.widgets.text("neo4j_uri", "")  # optional, e.g. neo4j+s://<id>.databases.neo4j.io; empty = skip export
 s = Settings.from_env(catalog=dbutils.widgets.get("catalog"), schema=dbutils.widgets.get("schema"),
                       llm_endpoint=dbutils.widgets.get("llm_endpoint"))
 
@@ -146,3 +147,31 @@ display(spark.sql(f"""
   SELECT relation, count(*) AS edges, count(DISTINCT doc_id) AS documents
   FROM {s.table("silver_kg_edges")} GROUP BY relation ORDER BY edges DESC
 """))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Optional: export to Neo4j
+# MAGIC Delta stays the source of truth; Neo4j is a read replica for multi-hop Cypher and graph exploration.
+# MAGIC `ekb.kg_neo4j` MERGEs on the deterministic ids (unique constraint per label), sends every value as a parameter
+# MAGIC (labels and relationship types come only from the fixed schema) and prunes facts that left the Delta snapshot.
+# MAGIC Credentials come from the `ekb` secret scope. Requires `%pip install neo4j` on the cluster.
+
+# COMMAND ----------
+
+neo4j_uri = dbutils.widgets.get("neo4j_uri")
+if neo4j_uri:
+    from neo4j import GraphDatabase
+
+    from ekb.kg_neo4j import run_export
+
+    kg_nodes = [KGNode(**{c: r[c] for c in ("entity_type", "name", "doc_id", "version", "evidence")})
+                for r in spark.table(s.table("silver_kg_nodes")).collect()]
+    kg_edges = [KGEdge(**{c: r[c] for c in ("src_id", "relation", "dst_id", "doc_id", "version", "evidence")})
+                for r in spark.table(s.table("silver_kg_edges")).collect()]
+    export_id = spark.sql("SELECT date_format(current_timestamp(), 'yyyyMMddHHmmss')").first()[0]
+    auth = (dbutils.secrets.get("ekb", "neo4j_user"), dbutils.secrets.get("ekb", "neo4j_password"))
+    with GraphDatabase.driver(neo4j_uri, auth=auth) as driver:
+        print(run_export(driver, kg_nodes, kg_edges, export_id, prune=True))
+else:
+    print("neo4j_uri not set: skipping the Neo4j export")
