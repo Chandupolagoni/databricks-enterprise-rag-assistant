@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 06 · Policy knowledge graph (GraphRAG) — schema, LLM extraction and entity resolution
+# MAGIC # 06 · Policy knowledge graph (GraphRAG) — schema, LLM extraction, fact validation and entity resolution
 # MAGIC
 # MAGIC Hybrid search answers "what does the wire SOP say?" but not "which policies does the Bank Secrecy Act
 # MAGIC govern?" — that answer lives in relationships across documents. This notebook creates the graph tables with
@@ -28,6 +28,7 @@ from pyspark.sql import functions as F
 from ekb.kg_extract import LLMGraphExtractor
 from ekb.kg_resolve import EntityResolver, catalog_from_documents, resolve_graph
 from ekb.kg_schema import KGEdge, KGNode, kg_table_ddl, node_id, schema_prompt, validate_graph
+from ekb.kg_validate import sources_from_passages, validate_facts
 from ekb.llm import DatabricksLLM
 
 dbutils.widgets.text("catalog", "workspace")
@@ -81,6 +82,22 @@ parents = spark.sql(f"""
 extractor = LLMGraphExtractor(DatabricksLLM(s.llm_endpoint, max_tokens=1500))
 result = extractor.extract(parents)
 result.stats
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Fact validation
+# MAGIC An edge is kept only when its evidence span really occurs in the source document version (exact after
+# MAGIC normalisation, or near-verbatim; source PII-masked like the extraction prompt) **and** the span mentions the
+# MAGIC edge's target. Paraphrased or invented justifications ("governed by the Dodd-Frank Act") go to the reject log.
+# MAGIC Runs before entity resolution so every duplicate edge is checked against its own evidence.
+
+# COMMAND ----------
+
+facts = validate_facts(result.edges, result.nodes, sources_from_passages(parents))
+result.nodes, result.edges = facts.nodes, facts.edges
+result.rejected += facts.rejected
+facts.stats
 
 # COMMAND ----------
 

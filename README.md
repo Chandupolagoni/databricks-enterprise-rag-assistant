@@ -182,7 +182,7 @@ databricks-enterprise-rag-assistant/
 │   ├── 03_vector_index.py       # Vector Search endpoint + Delta Sync index
 │   ├── 04_assistant.py          # demo: citations, RBAC, guardrails
 │   ├── 05_evaluation.py         # metrics, LLM judge, MLflow, quality gate
-│   └── 06_knowledge_graph.py    # GraphRAG: fixed schema + LLM extraction + entity resolution → silver_kg_*
+│   └── 06_knowledge_graph.py    # GraphRAG: schema, LLM extraction, fact validation, entity resolution → silver_kg_*
 ├── data/
 │   ├── raw/<business_unit>/     # 24 synthetic docs in 5 formats
 │   ├── metadata/documents.csv   # business unit, category, access level, version
